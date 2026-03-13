@@ -12,9 +12,9 @@ clock = pygame.time.Clock()
 lyrics = [
     ("With no makeup she a ten", 0.3, 0.8, "center"),
     ("And she the best with that head", 0.1, 0.5, "center"),
-    ("Even better than Karrine", 0.2, 0.8, "center"),
-    ("She dont want money", 0.2, 0.8, "center"),
-    ("She want the time that we could spend", 0.2, 1.0, "center"),
+    ("Even better than Karrine", 0.25, 1, "center"),
+    ("She dont want money", 0.25, 1, "center"),
+    ("She want the time that we could spend", 0.25, 1.0, "center"),
 ]
 
 WHITE = (255,255,255)
