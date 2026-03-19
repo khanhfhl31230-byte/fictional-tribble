@@ -4,7 +4,7 @@ pygame.init()
 
 WIDTH, HEIGHT = 1000, 700
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Love Me - Lyric")
+pygame.display.set_caption("Lyric Simple")
 
 font = pygame.font.SysFont("Arial", 70, bold=True)
 clock = pygame.time.Clock()
@@ -19,52 +19,14 @@ lyrics = [
 
 WHITE = (255,255,255)
 
-# -------- BACKGROUND (RED BLACK + PULSE) --------
+# -------- BACKGROUND RED BLACK NHẸ --------
 def draw_background(t):
     for y in range(HEIGHT):
-        base = int(20 + (y/HEIGHT)*100)
-        pulse = int(30 * (1 + math.sin(t*2)) / 2)
+        base = int(20 + (y/HEIGHT)*80)
+        pulse = int(15 * (1 + math.sin(t*2)) / 2)
 
-        r = min(255, base + pulse + 40)
+        r = min(255, base + pulse + 30)
         screen.fill((r, 0, 0), (0, y, WIDTH, 1))
-
-# -------- TEXT CACHE (TRÁNH LAG) --------
-text_cache = {}
-
-def get_text_surface(text):
-    if text not in text_cache:
-        base = font.render(text, True, WHITE)
-        glow = font.render(text, True, (255, 60, 60))
-        text_cache[text] = (base, glow)
-    return text_cache[text]
-
-# -------- DRAW TEXT (MƯỢT) --------
-def draw_text(text, x, y, alpha, scale):
-    base, glow = get_text_surface(text)
-
-    # scale nhẹ nhưng đã cache → không lag
-    if scale != 1:
-        size = base.get_size()
-        base_scaled = pygame.transform.smoothscale(
-            base, (int(size[0]*scale), int(size[1]*scale))
-        )
-        glow_scaled = pygame.transform.smoothscale(
-            glow, (int(size[0]*scale), int(size[1]*scale))
-        )
-    else:
-        base_scaled = base
-        glow_scaled = glow
-
-    # glow nhẹ (ít draw → mượt)
-    glow_scaled.set_alpha(alpha//4)
-    rect = glow_scaled.get_rect(center=(x, y))
-    screen.blit(glow_scaled, rect.move(-2,-2))
-    screen.blit(glow_scaled, rect.move(2,2))
-
-    # chữ chính
-    base_scaled.set_alpha(alpha)
-    rect = base_scaled.get_rect(center=(x, y))
-    screen.blit(base_scaled, rect)
 
 # -------- WRAP TEXT --------
 def wrap_text(text, font, max_width):
@@ -120,19 +82,21 @@ while running:
 
         y=HEIGHT//2 - len(wrapped)*font.get_height()//2
 
-        # hiệu ứng mượt
+        # fade nhẹ (mượt nhưng đơn giản)
         progress = word_index / max(len(words),1)
         alpha = int(min(255, progress * 255))
 
-        # zoom mượt (không giật)
-        scale = 1 + 0.15 * (1 - progress)
-
         for row in wrapped:
-            draw_text(row, WIDTH//2, y, alpha, scale)
+            text_surface = font.render(row, True, WHITE)
+            text_surface.set_alpha(alpha)
+
+            rect = text_surface.get_rect(center=(WIDTH//2, y))
+            screen.blit(text_surface, rect)
+
             y += font.get_height() + 10
 
     pygame.display.flip()
-    clock.tick(75)
+    clock.tick(60)
 
 pygame.quit()
 sys.exit()
