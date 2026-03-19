@@ -1,4 +1,4 @@
-import pygame, sys, time, random
+import pygame, sys, time, random, math
 
 pygame.init()
 
@@ -18,15 +18,44 @@ lyrics = [
 ]
 
 WHITE = (255,255,255)
-BLACK = (0,0,0)
 
-
-def draw_background():
+# ---------------- BACKGROUND ----------------
+def draw_background(t):
     for y in range(HEIGHT):
-        color = int(20 + (y/HEIGHT)*120)
-        pygame.draw.line(screen,(color,color,180),(0,y),(WIDTH,y))
+        base = int(30 + (y/HEIGHT)*100)
 
+        # hiệu ứng nhịp đỏ
+        pulse = int(20 * (1 + math.sin(t*2)) / 2)
 
+        r = min(255, base + pulse + 40)
+        g = 0
+        b = 0
+
+        pygame.draw.line(screen, (r, g, b), (0, y), (WIDTH, y))
+
+# ---------------- TEXT EFFECT ----------------
+def draw_text_effect(text, font, x, y, alpha, scale=1.0):
+    text_surface = font.render(text, True, WHITE)
+
+    # zoom nhẹ
+    size = text_surface.get_size()
+    text_surface = pygame.transform.smoothscale(
+        text_surface,
+        (int(size[0]*scale), int(size[1]*scale))
+    )
+
+    # glow đỏ
+    glow = font.render(text, True, (255, 50, 50))
+    for dx in [-3, -2, -1, 1, 2, 3]:
+        for dy in [-3, -2, -1, 1, 2, 3]:
+            glow.set_alpha(alpha//3)
+            screen.blit(glow, (x+dx, y+dy))
+
+    text_surface.set_alpha(alpha)
+    rect = text_surface.get_rect(center=(x, y))
+    screen.blit(text_surface, rect)
+
+# ---------------- WRAP TEXT ----------------
 def wrap_text(text, font, max_width):
     words = text.split(" ")
     lines=[]
@@ -43,10 +72,12 @@ def wrap_text(text, font, max_width):
     lines.append(current)
     return lines
 
-
+# ---------------- MAIN ----------------
 line_index=0
 word_index=0
 last_update=time.time()
+
+start_time = time.time()
 
 running=True
 
@@ -56,7 +87,8 @@ while running:
         if event.type==pygame.QUIT:
             running=False
 
-    draw_background()
+    t = time.time() - start_time
+    draw_background(t)
 
     if line_index < len(lyrics):
 
@@ -78,13 +110,14 @@ while running:
 
         y=HEIGHT//2 - len(wrapped)*font.get_height()//2
 
+        # progress để tạo hiệu ứng
+        progress = word_index / max(len(words),1)
+        alpha = int(min(255, progress * 255))
+        scale = 1 + 0.2*(1-progress)
+
         for row in wrapped:
-
-            text_surface=font.render(row,True,WHITE)
-            rect=text_surface.get_rect(center=(WIDTH//2,y))
-
-            screen.blit(text_surface,rect)
-            y+=font.get_height()+10
+            draw_text_effect(row, font, WIDTH//2, y, alpha, scale)
+            y += font.get_height() + 10
 
     pygame.display.flip()
     clock.tick(60)
