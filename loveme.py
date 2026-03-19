@@ -2,14 +2,15 @@ import pygame
 import sys
 import time
 import math
+import random
 
 pygame.init()
 
 WIDTH, HEIGHT = 1000, 700
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Lyric + Butterfly")
+pygame.display.set_caption("Lyric + Pixel Butterfly")
 
-font = pygame.font.SysFont("Arial", 40, bold=True)  # chữ nhỏ lại
+font = pygame.font.SysFont("Arial", 40, bold=True)
 clock = pygame.time.Clock()
 
 lyrics = [
@@ -23,10 +24,52 @@ lyrics = [
 WHITE = (255, 255, 255)
 
 # -------- BACKGROUND --------
-def draw_background():
+def draw_background(t):
     for y in range(HEIGHT):
-        color = int(20 + (y / HEIGHT) * 120)
-        pygame.draw.line(screen, (color, 0, 0), (0, y), (WIDTH, y))
+        base = int(20 + (y / HEIGHT) * 100)
+        pulse = int(20 * (1 + math.sin(t)) / 2)
+        r = min(255, base + pulse + 40)
+        screen.fill((r, 0, 0), (0, y, WIDTH, 1))
+
+# -------- PARTICLES --------
+particles = []
+for _ in range(40):
+    particles.append([
+        random.randint(0, WIDTH),
+        random.randint(0, HEIGHT),
+        random.uniform(0.5, 1.5),
+        random.randint(2, 4)
+    ])
+
+def draw_particles():
+    for p in particles:
+        p[1] -= p[2]
+        if p[1] < 0:
+            p[0] = random.randint(0, WIDTH)
+            p[1] = HEIGHT
+
+        pygame.draw.circle(screen, (255, 50, 50), (int(p[0]), int(p[1])), p[3])
+
+# -------- PIXEL BUTTERFLY --------
+def draw_pixel_butterfly(x, y, scale=6):
+    # ma trận pixel (1 là vẽ, 0 là trống)
+    shape = [
+        [0,1,1,0,0,0,1,1,0],
+        [1,1,1,1,0,1,1,1,1],
+        [1,1,1,1,0,1,1,1,1],
+        [0,1,1,1,1,1,1,1,0],
+        [0,0,1,1,1,1,1,0,0],
+        [0,0,0,1,1,1,0,0,0],
+    ]
+
+    for row_i, row in enumerate(shape):
+        for col_i, col in enumerate(row):
+            if col == 1:
+                pygame.draw.rect(
+                    screen,
+                    (255, 50, 50),
+                    (x + col_i*scale, y + row_i*scale, scale, scale)
+                )
 
 # -------- WRAP TEXT --------
 def wrap_text(text, font, max_width):
@@ -45,26 +88,14 @@ def wrap_text(text, font, max_width):
     lines.append(current)
     return lines
 
-# -------- VẼ BƯỚM --------
-def draw_butterfly(t):
-    x = 200 + math.sin(t * 2) * 30
-    y = HEIGHT // 2 + math.sin(t * 3) * 20
-
-    # cánh trái
-    pygame.draw.ellipse(screen, (200, 0, 0), (x - 40, y - 20, 40, 30))
-    pygame.draw.ellipse(screen, (255, 50, 50), (x - 35, y + 5, 35, 25))
-
-    # cánh phải
-    pygame.draw.ellipse(screen, (200, 0, 0), (x, y - 20, 40, 30))
-    pygame.draw.ellipse(screen, (255, 50, 50), (x, y + 5, 35, 25))
-
-    # thân
-    pygame.draw.rect(screen, (50, 0, 0), (x - 5, y - 20, 10, 50))
-
 # -------- MAIN --------
 line_index = 0
 word_index = 0
 last_update = time.time()
+
+waiting = False
+wait_start = 0
+
 start_time = time.time()
 
 running = True
@@ -75,30 +106,38 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    draw_background()
-
     t = time.time() - start_time
-    draw_butterfly(t)  # vẽ bướm bên trái
+
+    draw_background(t)
+    draw_particles()
+
+    # vẽ bướm bên trái (cố định)
+    draw_pixel_butterfly(120, HEIGHT//2 - 100, scale=8)
 
     if line_index < len(lyrics):
 
         line, word_delay, line_delay = lyrics[line_index]
         words = line.split()
 
-        if time.time() - last_update > word_delay:
+        if not waiting and time.time() - last_update > word_delay:
             word_index += 1
             last_update = time.time()
 
         visible = " ".join(words[:word_index])
 
+        # chuyển dòng mượt (không dùng sleep)
         if word_index > len(words):
-            time.sleep(line_delay)
-            line_index += 1
-            word_index = 0
+            if not waiting:
+                waiting = True
+                wait_start = time.time()
+
+            if time.time() - wait_start > line_delay:
+                line_index += 1
+                word_index = 0
+                waiting = False
 
         wrapped = wrap_text(visible, font, WIDTH * 0.4)
 
-        # căn bên phải
         y = HEIGHT // 2 - len(wrapped) * font.get_height() // 2
 
         for row in wrapped:
