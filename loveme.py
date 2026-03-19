@@ -1,12 +1,15 @@
-import pygame, sys, time, math
+import pygame
+import sys
+import time
+import math
 
 pygame.init()
 
 WIDTH, HEIGHT = 1000, 700
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Lyric Simple")
+pygame.display.set_caption("Lyric + Butterfly")
 
-font = pygame.font.SysFont("Arial", 70, bold=True)
+font = pygame.font.SysFont("Arial", 40, bold=True)  # chữ nhỏ lại
 clock = pygame.time.Clock()
 
 lyrics = [
@@ -17,82 +20,91 @@ lyrics = [
     ("She want the time that we could spend", 0.25, 1.0),
 ]
 
-WHITE = (255,255,255)
+WHITE = (255, 255, 255)
 
-# -------- BACKGROUND RED BLACK NHẸ --------
-def draw_background(t):
+# -------- BACKGROUND --------
+def draw_background():
     for y in range(HEIGHT):
-        base = int(20 + (y/HEIGHT)*80)
-        pulse = int(15 * (1 + math.sin(t*2)) / 2)
-
-        r = min(255, base + pulse + 30)
-        screen.fill((r, 0, 0), (0, y, WIDTH, 1))
+        color = int(20 + (y / HEIGHT) * 120)
+        pygame.draw.line(screen, (color, 0, 0), (0, y), (WIDTH, y))
 
 # -------- WRAP TEXT --------
 def wrap_text(text, font, max_width):
     words = text.split(" ")
-    lines=[]
-    current=""
+    lines = []
+    current = ""
 
     for w in words:
-        test=current+w+" "
+        test = current + w + " "
         if font.size(test)[0] < max_width:
-            current=test
+            current = test
         else:
             lines.append(current)
-            current=w+" "
+            current = w + " "
 
     lines.append(current)
     return lines
 
-# -------- MAIN --------
-line_index=0
-word_index=0
-last_update=time.time()
-start_time=time.time()
+# -------- VẼ BƯỚM --------
+def draw_butterfly(t):
+    x = 200 + math.sin(t * 2) * 30
+    y = HEIGHT // 2 + math.sin(t * 3) * 20
 
-running=True
+    # cánh trái
+    pygame.draw.ellipse(screen, (200, 0, 0), (x - 40, y - 20, 40, 30))
+    pygame.draw.ellipse(screen, (255, 50, 50), (x - 35, y + 5, 35, 25))
+
+    # cánh phải
+    pygame.draw.ellipse(screen, (200, 0, 0), (x, y - 20, 40, 30))
+    pygame.draw.ellipse(screen, (255, 50, 50), (x, y + 5, 35, 25))
+
+    # thân
+    pygame.draw.rect(screen, (50, 0, 0), (x - 5, y - 20, 10, 50))
+
+# -------- MAIN --------
+line_index = 0
+word_index = 0
+last_update = time.time()
+start_time = time.time()
+
+running = True
 
 while running:
 
     for event in pygame.event.get():
-        if event.type==pygame.QUIT:
-            running=False
+        if event.type == pygame.QUIT:
+            running = False
+
+    draw_background()
 
     t = time.time() - start_time
-    draw_background(t)
+    draw_butterfly(t)  # vẽ bướm bên trái
 
     if line_index < len(lyrics):
 
         line, word_delay, line_delay = lyrics[line_index]
-        words=line.split()
+        words = line.split()
 
-        if time.time()-last_update > word_delay:
-            word_index+=1
-            last_update=time.time()
+        if time.time() - last_update > word_delay:
+            word_index += 1
+            last_update = time.time()
 
-        visible=" ".join(words[:word_index])
+        visible = " ".join(words[:word_index])
 
         if word_index > len(words):
             time.sleep(line_delay)
-            line_index+=1
-            word_index=0
+            line_index += 1
+            word_index = 0
 
-        wrapped=wrap_text(visible,font,WIDTH*0.8)
+        wrapped = wrap_text(visible, font, WIDTH * 0.4)
 
-        y=HEIGHT//2 - len(wrapped)*font.get_height()//2
-
-        # fade nhẹ (mượt nhưng đơn giản)
-        progress = word_index / max(len(words),1)
-        alpha = int(min(255, progress * 255))
+        # căn bên phải
+        y = HEIGHT // 2 - len(wrapped) * font.get_height() // 2
 
         for row in wrapped:
             text_surface = font.render(row, True, WHITE)
-            text_surface.set_alpha(alpha)
-
-            rect = text_surface.get_rect(center=(WIDTH//2, y))
+            rect = text_surface.get_rect(right=WIDTH - 50, y=y)
             screen.blit(text_surface, rect)
-
             y += font.get_height() + 10
 
     pygame.display.flip()
