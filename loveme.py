@@ -13,6 +13,7 @@ pygame.display.set_caption("Lyric + Pixel Butterfly")
 font = pygame.font.SysFont("Arial", 40, bold=True)
 clock = pygame.time.Clock()
 
+# Lyric
 lyrics = [
     ("With no makeup she a ten", 0.3, 0.8),
     ("And she the best with that head", 0.1, 0.5),
@@ -23,22 +24,14 @@ lyrics = [
 
 WHITE = (255, 255, 255)
 
-# -------- BACKGROUND --------
-def draw_background(t):
-    for y in range(HEIGHT):
-        base = int(20 + (y / HEIGHT) * 100)
-        pulse = int(20 * (1 + math.sin(t)) / 2)
-        r = min(255, base + pulse + 40)
-        screen.fill((r, 0, 0), (0, y, WIDTH, 1))
-
 # -------- PARTICLES --------
 particles = []
-for _ in range(40):
+for _ in range(80):  # nhiều hơn, nhìn sống động
     particles.append([
         random.randint(0, WIDTH),
         random.randint(0, HEIGHT),
-        random.uniform(0.5, 1.5),
-        random.randint(2, 4)
+        random.uniform(0.5, 2.0),  # tốc độ
+        random.randint(2, 5)       # size
     ])
 
 def draw_particles():
@@ -47,12 +40,19 @@ def draw_particles():
         if p[1] < 0:
             p[0] = random.randint(0, WIDTH)
             p[1] = HEIGHT
-
         pygame.draw.circle(screen, (255, 50, 50), (int(p[0]), int(p[1])), p[3])
 
+# -------- BACKGROUND --------
+def draw_background(t):
+    for y in range(HEIGHT):
+        base = int(20 + (y / HEIGHT) * 100)
+        pulse = int(30 * (1 + math.sin(t*1.5)) / 2)
+        r = min(255, base + pulse + 40)
+        screen.fill((r, 0, 0), (0, y, WIDTH, 1))
+
 # -------- PIXEL BUTTERFLY --------
-def draw_pixel_butterfly(x, y, scale=6):
-    # ma trận pixel (1 là vẽ, 0 là trống)
+def draw_pixel_butterfly(x, y, scale=8):
+    # ma trận pixel (1 = vẽ)
     shape = [
         [0,1,1,0,0,0,1,1,0],
         [1,1,1,1,0,1,1,1,1],
@@ -61,22 +61,19 @@ def draw_pixel_butterfly(x, y, scale=6):
         [0,0,1,1,1,1,1,0,0],
         [0,0,0,1,1,1,0,0,0],
     ]
-
     for row_i, row in enumerate(shape):
         for col_i, col in enumerate(row):
             if col == 1:
-                pygame.draw.rect(
-                    screen,
-                    (255, 50, 50),
-                    (x + col_i*scale, y + row_i*scale, scale, scale)
-                )
+                rect = pygame.Rect(x + col_i*scale, y + row_i*scale, scale, scale)
+                pygame.draw.rect(screen, (255, 0, 0), rect)
+                # glow xung quanh
+                pygame.draw.rect(screen, (255, 100, 100), rect.inflate(2,2), 1)
 
 # -------- WRAP TEXT --------
 def wrap_text(text, font, max_width):
     words = text.split(" ")
     lines = []
     current = ""
-
     for w in words:
         test = current + w + " "
         if font.size(test)[0] < max_width:
@@ -84,7 +81,6 @@ def wrap_text(text, font, max_width):
         else:
             lines.append(current)
             current = w + " "
-
     lines.append(current)
     return lines
 
@@ -110,12 +106,9 @@ while running:
 
     draw_background(t)
     draw_particles()
-
-    # vẽ bướm bên trái (cố định)
-    draw_pixel_butterfly(120, HEIGHT//2 - 100, scale=8)
+    draw_pixel_butterfly(120, HEIGHT//2 - 100, scale=8)  # bướm pixel nổi bật bên trái
 
     if line_index < len(lyrics):
-
         line, word_delay, line_delay = lyrics[line_index]
         words = line.split()
 
@@ -125,21 +118,19 @@ while running:
 
         visible = " ".join(words[:word_index])
 
-        # chuyển dòng mượt (không dùng sleep)
         if word_index > len(words):
             if not waiting:
                 waiting = True
                 wait_start = time.time()
-
             if time.time() - wait_start > line_delay:
                 line_index += 1
                 word_index = 0
                 waiting = False
 
-        wrapped = wrap_text(visible, font, WIDTH * 0.4)
+        wrapped = wrap_text(visible, font, WIDTH*0.4)
 
-        y = HEIGHT // 2 - len(wrapped) * font.get_height() // 2
-
+        # chữ nhỏ bên phải
+        y = HEIGHT//2 - len(wrapped)*font.get_height()//2
         for row in wrapped:
             text_surface = font.render(row, True, WHITE)
             rect = text_surface.get_rect(right=WIDTH - 50, y=y)
